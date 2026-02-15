@@ -73,16 +73,6 @@ static void app_switch_view(ProtoViewApp *app, ProtoViewCurrentView switchto) {
     furi_mutex_release(app->view_updating_mutex);
 }
 
-/* Find the index of 315 MHz in the frequency list, or return 0. */
-static uint32_t find_frequency_index(ProtoViewApp *app, uint32_t target_freq) {
-    size_t count = subghz_setting_get_frequency_count(app->setting);
-    for (size_t i = 0; i < count; i++) {
-        uint32_t freq = subghz_setting_get_frequency(app->setting, i);
-        if (freq == target_freq) return i;
-    }
-    return 0;
-}
-
 /* Find the index of a TPMS modulation preset. Returns the first
  * TPMS preset found, or 0 if none. */
 static uint8_t find_tpms_modulation(void) {
@@ -135,14 +125,9 @@ ProtoViewApp* protoview_app_alloc() {
     app->txrx->last_g0_change_time = DWT->CYCCNT;
     app->txrx->last_g0_value = false;
 
-    /* Default to 315 MHz (US TPMS) and the first TPMS modulation preset. */
-    size_t freq_idx = find_frequency_index(app, TPMS_DEFAULT_FREQUENCY);
-    if (freq_idx != 0 || subghz_setting_get_frequency(app->setting, 0) == TPMS_DEFAULT_FREQUENCY) {
-        app->frequency = TPMS_DEFAULT_FREQUENCY;
-    } else {
-        /* Fallback if 315MHz not in list. */
-        app->frequency = subghz_setting_get_default_frequency(app->setting);
-    }
+    /* Always start on 315 MHz (US TPMS). The CC1101 supports this
+     * frequency regardless of the Flipper's setting_user list. */
+    app->frequency = TPMS_DEFAULT_FREQUENCY;
     app->modulation = find_tpms_modulation();
 
     /* TPMS sensor list. */

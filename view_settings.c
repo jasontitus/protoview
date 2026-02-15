@@ -51,22 +51,35 @@ void process_input_settings(ProtoViewApp *app, InputEvent input) {
         if (app->current_view == ViewFrequencySettings) {
             size_t curidx = 0, i;
             size_t count = subghz_setting_get_frequency_count(app->setting);
+            bool found = false;
 
             for (i = 0; i < count; i++) {
                 uint32_t freq = subghz_setting_get_frequency(app->setting, i);
                 if (freq == app->frequency) {
                     curidx = i;
+                    found = true;
                     break;
                 }
             }
-            if (i == count) return;
 
-            if (input.key == InputKeyUp) {
-                curidx = curidx == 0 ? count - 1 : curidx - 1;
-            } else if (input.key == InputKeyDown) {
-                curidx = (curidx + 1) % count;
+            if (!found) {
+                /* Current frequency (e.g. 315 MHz) not in list.
+                 * Jump to first or last entry in the list. */
+                if (input.key == InputKeyUp) {
+                    curidx = count - 1;
+                } else if (input.key == InputKeyDown) {
+                    curidx = 0;
+                } else {
+                    return;
+                }
             } else {
-                return;
+                if (input.key == InputKeyUp) {
+                    curidx = curidx == 0 ? count - 1 : curidx - 1;
+                } else if (input.key == InputKeyDown) {
+                    curidx = (curidx + 1) % count;
+                } else {
+                    return;
+                }
             }
             app->frequency = subghz_setting_get_frequency(app->setting, curidx);
         } else if (app->current_view == ViewModulationSettings) {

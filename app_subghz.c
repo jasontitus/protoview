@@ -8,6 +8,7 @@
 #include <furi_hal_rtc.h>
 #include <furi_hal_spi.h>
 #include <furi_hal_interrupt.h>
+#include <lib/subghz/devices/cc1101_configs.h>
 
 void raw_sampling_timer_start(ProtoViewApp *app);
 void raw_sampling_timer_stop(ProtoViewApp *app);
@@ -45,15 +46,32 @@ void radio_begin(ProtoViewApp* app) {
      * ProtoView will improve the RF performances. */
     furi_hal_power_suppress_charge_enter();
 
-    /* The CC1101 preset can be either one of the standard presets, if
-     * the modulation "custom" field is NULL, or a custom preset we
-     * defined in custom_presets.h. */
-    if (ProtoViewModulations[app->modulation].custom == NULL) {
-        furi_hal_subghz_load_preset(
-            ProtoViewModulations[app->modulation].preset);
-    } else {
+    /* Load the CC1101 register preset for the selected modulation.
+     * Custom presets are defined in custom_presets.h; built-in ones
+     * use the SDK's register arrays. */
+    if (ProtoViewModulations[app->modulation].custom != NULL) {
         furi_hal_subghz_load_custom_preset(
             ProtoViewModulations[app->modulation].custom);
+    } else {
+        const uint8_t *regs = NULL;
+        switch (ProtoViewModulations[app->modulation].preset) {
+        case FuriHalSubGhzPresetOok650Async:
+            regs = subghz_device_cc1101_preset_ook_650khz_async_regs;
+            break;
+        case FuriHalSubGhzPresetOok270Async:
+            regs = subghz_device_cc1101_preset_ook_270khz_async_regs;
+            break;
+        case FuriHalSubGhzPreset2FSKDev238Async:
+            regs = subghz_device_cc1101_preset_2fsk_dev2_38khz_async_regs;
+            break;
+        case FuriHalSubGhzPreset2FSKDev476Async:
+            regs = subghz_device_cc1101_preset_2fsk_dev47_6khz_async_regs;
+            break;
+        default:
+            regs = subghz_device_cc1101_preset_ook_650khz_async_regs;
+            break;
+        }
+        furi_hal_subghz_load_custom_preset(regs);
     }
     furi_hal_gpio_init(&gpio_cc1101_g0, GpioModeInput, GpioPullNo, GpioSpeedLow);
     app->txrx->txrx_state = TxRxStateIDLE;
