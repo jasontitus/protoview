@@ -14,13 +14,13 @@ void raw_sampling_timer_stop(ProtoViewApp *app);
 
 ProtoViewModulation ProtoViewModulations[] = {
     {"OOK 650Khz", "FuriHalSubGhzPresetOok650Async",
-                    FuriHalSubGhzPresetOok650Async, NULL, 30},
+                    0, (uint8_t*)protoview_subghz_ook_650khz_async_regs, 30},
     {"OOK 270Khz", "FuriHalSubGhzPresetOok270Async",
-                    FuriHalSubGhzPresetOok270Async, NULL, 30},
+                    0, (uint8_t*)protoview_subghz_ook_270khz_async_regs, 30},
     {"2FSK 2.38Khz", "FuriHalSubGhzPreset2FSKDev238Async",
-                    FuriHalSubGhzPreset2FSKDev238Async, NULL, 30},
+                    0, (uint8_t*)protoview_subghz_2fsk_dev238_async_regs, 30},
     {"2FSK 47.6Khz", "FuriHalSubGhzPreset2FSKDev476Async",
-                    FuriHalSubGhzPreset2FSKDev476Async, NULL, 30},
+                    0, (uint8_t*)protoview_subghz_2fsk_dev476_async_regs, 30},
     {"TPMS 1 (FSK)", NULL,
                     0, (uint8_t*)protoview_subghz_tpms1_fsk_async_regs, 30},
     {"TPMS 2 (OOK)", NULL,
@@ -45,16 +45,10 @@ void radio_begin(ProtoViewApp* app) {
      * ProtoView will improve the RF performances. */
     furi_hal_power_suppress_charge_enter();
 
-    /* The CC1101 preset can be either one of the standard presets, if
-     * the modulation "custom" field is NULL, or a custom preset we
-     * defined in custom_presets.h. */
-    if (ProtoViewModulations[app->modulation].custom == NULL) {
-        furi_hal_subghz_load_preset(
-            ProtoViewModulations[app->modulation].preset);
-    } else {
-        furi_hal_subghz_load_custom_preset(
-            ProtoViewModulations[app->modulation].custom);
-    }
+    /* Load the CC1101 register preset for the current modulation.
+     * All presets are defined as custom register arrays. */
+    furi_hal_subghz_load_custom_preset(
+        ProtoViewModulations[app->modulation].custom);
     furi_hal_gpio_init(&gpio_cc1101_g0, GpioModeInput, GpioPullNo, GpioSpeedLow);
     app->txrx->txrx_state = TxRxStateIDLE;
 }

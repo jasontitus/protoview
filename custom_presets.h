@@ -1,4 +1,104 @@
 #include <cc1101.h>
+
+/* ======================== Standard Flipper Presets ===========================
+ * These are the standard CC1101 presets from the Flipper firmware, defined
+ * here as custom register arrays so we don't depend on
+ * furi_hal_subghz_load_preset() which was removed from the HAL API. */
+
+/* OOK, 650 kHz bandwidth */
+static const uint8_t protoview_subghz_ook_650khz_async_regs[][2] = {
+    {CC1101_IOCFG0, 0x0D},
+    {CC1101_FIFOTHR, 0x07},
+    {CC1101_PKTCTRL0, 0x32},
+    {CC1101_FSCTRL1, 0x06},
+    {CC1101_MDMCFG0, 0x00},
+    {CC1101_MDMCFG1, 0x00},
+    {CC1101_MDMCFG2, 0x30},
+    {CC1101_MDMCFG3, 0x32},
+    {CC1101_MDMCFG4, 0x17},
+    {CC1101_MCSM0, 0x18},
+    {CC1101_FOCCFG, 0x18},
+    {CC1101_AGCCTRL0, 0x91},
+    {CC1101_AGCCTRL1, 0x00},
+    {CC1101_AGCCTRL2, 0x07},
+    {CC1101_WORCTRL, 0xFB},
+    {CC1101_FREND0, 0x11},
+    {CC1101_FREND1, 0xB6},
+    {0, 0},
+    {0x00, 0xC0}, {0,0}, {0,0}, {0,0}
+};
+
+/* OOK, 270 kHz bandwidth */
+static const uint8_t protoview_subghz_ook_270khz_async_regs[][2] = {
+    {CC1101_IOCFG0, 0x0D},
+    {CC1101_FIFOTHR, 0x47},
+    {CC1101_PKTCTRL0, 0x32},
+    {CC1101_FSCTRL1, 0x06},
+    {CC1101_MDMCFG0, 0x00},
+    {CC1101_MDMCFG1, 0x00},
+    {CC1101_MDMCFG2, 0x30},
+    {CC1101_MDMCFG3, 0x32},
+    {CC1101_MDMCFG4, 0x67},
+    {CC1101_MCSM0, 0x18},
+    {CC1101_FOCCFG, 0x18},
+    {CC1101_AGCCTRL0, 0x40},
+    {CC1101_AGCCTRL1, 0x00},
+    {CC1101_AGCCTRL2, 0x03},
+    {CC1101_WORCTRL, 0xFB},
+    {CC1101_FREND0, 0x11},
+    {CC1101_FREND1, 0xB6},
+    {0, 0},
+    {0x00, 0xC0}, {0,0}, {0,0}, {0,0}
+};
+
+/* 2-FSK, deviation 2.38 kHz */
+static const uint8_t protoview_subghz_2fsk_dev238_async_regs[][2] = {
+    {CC1101_IOCFG0, 0x0D},
+    {CC1101_FSCTRL1, 0x06},
+    {CC1101_PKTCTRL0, 0x32},
+    {CC1101_PKTCTRL1, 0x04},
+    {CC1101_MDMCFG0, 0x00},
+    {CC1101_MDMCFG1, 0x02},
+    {CC1101_MDMCFG2, 0x04},
+    {CC1101_MDMCFG3, 0x83},
+    {CC1101_MDMCFG4, 0x67},
+    {CC1101_DEVIATN, 0x04},
+    {CC1101_MCSM0, 0x18},
+    {CC1101_FOCCFG, 0x16},
+    {CC1101_AGCCTRL0, 0x91},
+    {CC1101_AGCCTRL1, 0x00},
+    {CC1101_AGCCTRL2, 0x07},
+    {CC1101_WORCTRL, 0xFB},
+    {CC1101_FREND0, 0x10},
+    {CC1101_FREND1, 0x56},
+    {0, 0},
+    {0xC0, 0x00}, {0,0}, {0,0}, {0,0}
+};
+
+/* 2-FSK, deviation 47.6 kHz */
+static const uint8_t protoview_subghz_2fsk_dev476_async_regs[][2] = {
+    {CC1101_IOCFG0, 0x0D},
+    {CC1101_FSCTRL1, 0x06},
+    {CC1101_PKTCTRL0, 0x32},
+    {CC1101_PKTCTRL1, 0x04},
+    {CC1101_MDMCFG0, 0x00},
+    {CC1101_MDMCFG1, 0x02},
+    {CC1101_MDMCFG2, 0x04},
+    {CC1101_MDMCFG3, 0x83},
+    {CC1101_MDMCFG4, 0x67},
+    {CC1101_DEVIATN, 0x47},
+    {CC1101_MCSM0, 0x18},
+    {CC1101_FOCCFG, 0x16},
+    {CC1101_AGCCTRL0, 0x91},
+    {CC1101_AGCCTRL1, 0x00},
+    {CC1101_AGCCTRL2, 0x07},
+    {CC1101_WORCTRL, 0xFB},
+    {CC1101_FREND0, 0x10},
+    {CC1101_FREND1, 0x56},
+    {0, 0},
+    {0xC0, 0x00}, {0,0}, {0,0}, {0,0}
+};
+
 /* ========================== DATA RATE SETTINGS ===============================
  *
  * This is how to configure registers MDMCFG3 and MDMCFG4.
