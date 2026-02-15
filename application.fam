@@ -1,9 +1,9 @@
 App(
-    appid="protoview",
-    name="ProtoView",
+    appid="tpms_reader",
+    name="TPMS Reader",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="protoview_app_entry",
-    cdefines=["APP_PROTOVIEW"],
+    cdefines=["APP_TPMS_READER"],
     requires=["gui"],
     stack_size=8*1024,
     order=50,
