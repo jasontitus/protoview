@@ -1,0 +1,125 @@
+/* TPMS Sensor list management.
+ * Extracts sensor data from decoded messages and maintains a list of
+ * unique sensors with their latest readings. */
+
+#include "app.h"
+#include <string.h>
+
+/* Initialize the sensor list. */
+void tpms_sensor_list_init(TPMSSensorList *list) {
+    memset(list, 0, sizeof(TPMSSensorList));
+}
+
+/* Clear all sensors from the list. */
+void tpms_sensor_list_clear(TPMSSensorList *list) {
+    list->count = 0;
+    memset(list->sensors, 0, sizeof(list->sensors));
+}
+
+/* Find a field in a fieldset by name. Returns NULL if not found. */
+static ProtoViewField *fieldset_find(ProtoViewFieldSet *fs, const char *name) {
+    for (uint32_t i = 0; i < fs->numfields; i++) {
+        if (strcmp(fs->fields[i]->name, name) == 0)
+            return fs->fields[i];
+    }
+    return NULL;
+}
+
+/* Find a sensor in the list by its ID. Returns index or -1. */
+static int sensor_list_find(TPMSSensorList *list, uint8_t *id, uint8_t id_len) {
+    for (uint32_t i = 0; i < list->count; i++) {
+        if (list->sensors[i].id_len == id_len &&
+            memcmp(list->sensors[i].id, id, id_len) == 0)
+        {
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+/* Extract TPMS sensor data from the currently decoded message and
+ * add or update it in the sensor list.
+ * Returns true if a valid TPMS sensor was extracted. */
+bool tpms_extract_and_store(ProtoViewApp *app) {
+    if (!app->msg_info || !app->msg_info->fieldset) return false;
+
+    ProtoViewFieldSet *fs = app->msg_info->fieldset;
+    ProtoViewField *id_field = fieldset_find(fs, "Tire ID");
+    if (!id_field) return false; /* Not a TPMS message. */
+    if (id_field->type != FieldTypeBytes) return false;
+
+    TPMSSensor sensor;
+    memset(&sensor, 0, sizeof(sensor));
+
+    /* Extract tire ID. */
+    uint8_t id_bytes = (id_field->len + 1) / 2; /* len is in nibbles. */
+    if (id_bytes > TPMS_ID_MAX_BYTES) id_bytes = TPMS_ID_MAX_BYTES;
+    memcpy(sensor.id, id_field->bytes, id_bytes);
+    sensor.id_len = id_bytes;
+
+    /* Protocol name. */
+    snprintf(sensor.protocol, sizeof(sensor.protocol), "%s",
+             app->msg_info->decoder->name);
+
+    /* Extract pressure. Decoders output either "Pressure kpa" or
+     * "Pressure psi". Normalize to PSI. */
+    ProtoViewField *pressure_kpa = fieldset_find(fs, "Pressure kpa");
+    ProtoViewField *pressure_psi = fieldset_find(fs, "Pressure psi");
+
+    if (pressure_psi && pressure_psi->type == FieldTypeFloat) {
+        sensor.pressure_psi = pressure_psi->fvalue;
+        sensor.has_pressure = true;
+    } else if (pressure_kpa && pressure_kpa->type == FieldTypeFloat) {
+        /* Convert kPa to PSI. */
+        sensor.pressure_psi = pressure_kpa->fvalue * 0.14503774f;
+        sensor.has_pressure = true;
+    }
+
+    /* Extract temperature. Decoders output "Temperature C".
+     * Convert to Fahrenheit. */
+    ProtoViewField *temp_c = fieldset_find(fs, "Temperature C");
+    if (temp_c && temp_c->type == FieldTypeSignedInt) {
+        sensor.temperature_f = (int)(temp_c->value * 9 / 5 + 32);
+        sensor.has_temperature = true;
+    }
+
+    sensor.last_seen = furi_get_tick();
+    sensor.rx_count = 1;
+
+    /* Find existing sensor or add new one. */
+    int idx = sensor_list_find(&app->sensor_list, sensor.id, sensor.id_len);
+    if (idx >= 0) {
+        /* Update existing sensor. */
+        TPMSSensor *existing = &app->sensor_list.sensors[idx];
+        if (sensor.has_pressure) {
+            existing->pressure_psi = sensor.pressure_psi;
+            existing->has_pressure = true;
+        }
+        if (sensor.has_temperature) {
+            existing->temperature_f = sensor.temperature_f;
+            existing->has_temperature = true;
+        }
+        existing->last_seen = sensor.last_seen;
+        existing->rx_count++;
+        /* Update protocol name in case a more specific decoder matched. */
+        snprintf(existing->protocol, sizeof(existing->protocol), "%s",
+                 sensor.protocol);
+    } else if (app->sensor_list.count < TPMS_MAX_SENSORS) {
+        /* Add new sensor. */
+        app->sensor_list.sensors[app->sensor_list.count] = sensor;
+        app->sensor_list.count++;
+    }
+
+    /* Notify the user: vibrate + green LED for new TPMS data. */
+    static const NotificationSequence tpms_seq = {
+        &message_vibro_on,
+        &message_green_255,
+        &message_delay_50,
+        &message_green_0,
+        &message_vibro_off,
+        NULL
+    };
+    notification_message(app->notification, &tpms_seq);
+
+    return true;
+}

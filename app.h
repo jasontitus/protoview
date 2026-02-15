@@ -1,5 +1,7 @@
 /* Copyright (C) 2022-2023 Salvatore Sanfilippo -- All Rights Reserved
- * See the LICENSE file for information about the license. */
+ * See the LICENSE file for information about the license.
+ *
+ * Modified: TPMS Reader - Focused on US 315 MHz TPMS signal detection. */
 
 #pragma once
 
@@ -20,14 +22,37 @@
 #include <lib/subghz/registry.h>
 #include "raw_samples.h"
 
-#define TAG "ProtoView"
-#define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100 // 100us is 1 pixel by default
-#define BITMAP_SEEK_NOT_FOUND UINT32_MAX // Returned by function as sentinel
-#define PROTOVIEW_VIEW_PRIVDATA_LEN 64 // View specific private data len
+#define TAG "TPMSReader"
+#define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100
+#define BITMAP_SEEK_NOT_FOUND UINT32_MAX
+#define PROTOVIEW_VIEW_PRIVDATA_LEN 64
 
 #define DEBUG_MSG 1
 
-/* Forward declarations. */
+/* ========================= TPMS Sensor Tracking ============================ */
+
+#define TPMS_MAX_SENSORS 32
+#define TPMS_ID_MAX_BYTES 8
+#define TPMS_DEFAULT_FREQUENCY 315000000
+
+typedef struct {
+    uint8_t id[TPMS_ID_MAX_BYTES];
+    uint8_t id_len;             /* ID length in bytes. */
+    char protocol[24];          /* Decoder name. */
+    float pressure_psi;         /* Pressure in PSI. */
+    int temperature_f;          /* Temperature in Fahrenheit. */
+    bool has_pressure;
+    bool has_temperature;
+    uint32_t last_seen;         /* Tick when last received. */
+    uint32_t rx_count;          /* Number of receptions. */
+} TPMSSensor;
+
+typedef struct {
+    TPMSSensor sensors[TPMS_MAX_SENSORS];
+    uint32_t count;
+} TPMSSensorList;
+
+/* ========================= Forward declarations ============================ */
 
 typedef struct ProtoViewApp ProtoViewApp;
 typedef struct ProtoViewMsgInfo ProtoViewMsgInfo;
@@ -46,16 +71,13 @@ typedef enum {
 
 /* Currently active view. */
 typedef enum {
-    ViewRawPulses,
-    ViewInfo,
+    ViewTPMSList,           /* Main view: scanning + sensor list. */
+    ViewTPMSDetail,         /* Detail view for a single sensor. */
     ViewFrequencySettings,
     ViewModulationSettings,
-    ViewBuildMessage,
-    ViewDirectSampling,
-    ViewLast, /* Just a sentinel to wrap around. */
+    ViewLast,               /* Sentinel to wrap around. */
 
-    /* The following are special views that are not iterated, but
-     * have meaning for the API. */
+    /* Special views for the API. */
     ViewGoNext,
     ViewGoPrev,
 } ProtoViewCurrentView;
@@ -63,34 +85,21 @@ typedef enum {
 /* ================================== RX/TX ================================= */
 
 typedef struct {
-    const char *name;               // Name to show to the user.
-    const char *id;                 // Identifier in the Flipper API/file.
-    FuriHalSubGhzPreset preset;     // The preset ID.
-    uint8_t *custom;                /* If not null, a set of registers for
-                                       the CC1101, specifying a custom preset.*/
-    uint32_t duration_filter;       /* Ignore pulses and gaps that are less
-                                       than the specified microseconds. This
-                                       depends on the data rate. */
+    const char *name;
+    const char *id;
+    FuriHalSubGhzPreset preset;
+    uint8_t *custom;
+    uint32_t duration_filter;
 } ProtoViewModulation;
 
-extern ProtoViewModulation ProtoViewModulations[]; /* In app_subghz.c */
+extern ProtoViewModulation ProtoViewModulations[];
 
-/* This is the context of our subghz worker and associated thread.
- * It receives data and we get our protocol "feed" callback called
- * with the level (1 or 0) and duration. */
 struct ProtoViewTxRx {
-    bool freq_mod_changed;      /* The user changed frequency and/or modulation
-                                   from the interface. There is to restart the
-                                   radio with the right parameters. */
-    TxRxState txrx_state;       /* Receiving, idle or sleeping? */
-
-    /* Timer sampling mode state. */
-    bool debug_timer_sampling;  /* Read data from GDO0 in a busy loop. Only
-                                   for testing. */
-    uint32_t last_g0_change_time; /* Last high->low (or reverse) switch. */
-    bool last_g0_value;           /* Current value (high or low): we are
-                                     checking the duration in the timer
-                                     handler. */
+    bool freq_mod_changed;
+    TxRxState txrx_state;
+    bool debug_timer_sampling;
+    uint32_t last_g0_change_time;
+    bool last_g0_value;
 };
 
 typedef struct ProtoViewTxRx ProtoViewTxRx;
@@ -102,89 +111,59 @@ struct ProtoViewApp {
     /* GUI */
     Gui *gui;
     NotificationApp *notification;
-    ViewPort *view_port;     /* We just use a raw viewport and we render
-                                everything into the low level canvas. */
-    ProtoViewCurrentView current_view;      /* Active left-right view ID. */
-    FuriMutex *view_updating_mutex; /* The Flipper GUI calls the screen redraw
-                                       callback in a different thread. We
-                                       use this mutex to protect the redraw
-                                       from changes in app->view_privdata. */
-    int current_subview[ViewLast];  /* Active up-down subview ID. */
-    FuriMessageQueue *event_queue;  /* Keypress events go here. */
-
-    /* Input text state. */
-    ViewDispatcher *view_dispatcher; /* Used only when we want to show
-                                        the text_input view for a moment.
-                                        Otherwise it is set to null. */
-    TextInput *text_input;
-    bool show_text_input;
-    char *text_input_buffer;
-    uint32_t text_input_buffer_len;
-    void (*text_input_done_callback)(void*);
+    ViewPort *view_port;
+    ProtoViewCurrentView current_view;
+    FuriMutex *view_updating_mutex;
+    int current_subview[ViewLast];
+    FuriMessageQueue *event_queue;
 
     /* Alert state. */
-    uint32_t alert_dismiss_time;    /* Millisecond when the alert will be
-                                       no longer shown. Or zero if the alert
-                                       is currently not set at all. */
-    char alert_text[ALERT_MAX_LEN]; /* Alert content. */
+    uint32_t alert_dismiss_time;
+    char alert_text[ALERT_MAX_LEN];
 
     /* Radio related. */
-    ProtoViewTxRx *txrx;     /* Radio state. */
-    SubGhzSetting *setting;  /* A list of valid frequencies. */
+    ProtoViewTxRx *txrx;
+    SubGhzSetting *setting;
 
     /* Generic app state. */
-    int running;             /* Once false exists the app. */
-    uint32_t signal_bestlen; /* Longest coherent signal observed so far. */
-    uint32_t signal_last_scan_idx; /* Index of the buffer last time we
-                                      performed the scan. */
-    bool signal_decoded;     /* Was the current signal decoded? */
-    ProtoViewMsgInfo *msg_info; /* Decoded message info if not NULL. */
-    bool direct_sampling_enabled; /* This special view needs an explicit
-                                     acknowledge to work. */
-    void *view_privdata;    /* This is a piece of memory of total size
-                               PROTOVIEW_VIEW_PRIVDATA_LEN that it is
-                               initialized to zero when we switch to
-                               a a new view. While the view we are using
-                               is the same, it can be used by the view to
-                               store any kind of info inside, just casting
-                               the pointer to a few specific-data structure. */
+    int running;
+    uint32_t signal_bestlen;
+    uint32_t signal_last_scan_idx;
+    bool signal_decoded;
+    ProtoViewMsgInfo *msg_info;
+    void *view_privdata;
 
-    /* Raw view apps state. */
-    uint32_t us_scale;       /* microseconds per pixel. */
-    uint32_t signal_offset;  /* Long press left/right panning in raw view. */
+    /* Raw view state (kept for compatibility with signal.c). */
+    uint32_t us_scale;
+    uint32_t signal_offset;
 
-    /* Configuration view app state. */
-    uint32_t frequency;      /* Current frequency. */
-    uint8_t modulation;      /* Current modulation ID, array index in the
-                                ProtoViewModulations table. */
+    /* Configuration. */
+    uint32_t frequency;
+    uint8_t modulation;
+
+    /* TPMS sensor tracking. */
+    TPMSSensorList sensor_list;
+    int selected_sensor;        /* Currently selected sensor in list. */
+    int list_scroll_offset;     /* First visible sensor in list. */
+
+    /* Modulation auto-cycling. */
+    bool mod_auto_cycle;        /* Auto-cycle through TPMS modulations. */
+    uint32_t mod_cycle_counter; /* Timer ticks since last modulation change. */
 };
 
 /* =========================== Protocols decoders =========================== */
 
-/* This stucture is filled by the decoder for specific protocols with the
- * informations about the message. ProtoView will display such information
- * in the message info view. */
 #define PROTOVIEW_MSG_STR_LEN 32
 typedef struct ProtoViewMsgInfo {
-    ProtoViewDecoder *decoder;  /* The decoder that decoded the message. */
-    ProtoViewFieldSet *fieldset; /* Decoded fields. */
-    /* Low level information of the detected signal: the following are filled
-     * by the protocol decoding function: */
-    uint32_t start_off;         /* Pulses start offset in the bitmap. */
-    uint32_t pulses_count;      /* Number of pulses of the full message. */
-    /* The following are passed already filled to the decoder. */
-    uint32_t short_pulse_dur;   /* Microseconds duration of the short pulse. */
-    /* The following are filled by ProtoView core after the decoder returned
-     * success. */
-    uint8_t *bits;              /* Bitmap with the signal. */
-    uint32_t bits_bytes;        /* Number of full bytes in the bitmap, that
-                                   is 'pulses_count/8' rounded to the next
-                                   integer. */
+    ProtoViewDecoder *decoder;
+    ProtoViewFieldSet *fieldset;
+    uint32_t start_off;
+    uint32_t pulses_count;
+    uint32_t short_pulse_dur;
+    uint8_t *bits;
+    uint32_t bits_bytes;
 } ProtoViewMsgInfo;
 
-/* This structures describe a set of protocol fields. It is used by decoders
- * supporting message building to receive and return information about the
- * protocol. */
 typedef enum {
     FieldTypeStr,
     FieldTypeSignedInt,
@@ -197,18 +176,14 @@ typedef enum {
 
 typedef struct {
     ProtoViewFieldType type;
-    uint32_t len;       // Depends on type:
-                        // Bits for integers (signed,unsigned,binary,hex).
-                        // Number of characters for strings.
-                        // Number of nibbles for bytes (1 for each 4 bits).
-                        // Number of digits after dot for floats.
-    char *name;         // Field name.
+    uint32_t len;
+    char *name;
     union {
-        char *str;          // String type.
-        int64_t value;      // Signed integer type.
-        uint64_t uvalue;    // Unsigned integer type.
-        uint8_t *bytes;     // Raw bytes type.
-        float fvalue;       // Float type.
+        char *str;
+        int64_t value;
+        uint64_t uvalue;
+        uint8_t *bytes;
+        float fvalue;
     };
 } ProtoViewField;
 
@@ -218,22 +193,9 @@ typedef struct ProtoViewFieldSet {
 } ProtoViewFieldSet;
 
 typedef struct ProtoViewDecoder {
-    const char *name;   /* Protocol name. */
-    /* The decode function takes a buffer that is actually a bitmap, with
-     * high and low levels represented as 0 and 1. The number of high/low
-     * pulses represented by the bitmap is passed as the 'numbits' argument,
-     * while 'numbytes' represents the total size of the bitmap pointed by
-     * 'bits'. So 'numbytes' is mainly useful to pass as argument to other
-     * functions that perform bit extraction with bound checking, such as
-     * bitmap_get() and so forth. */
+    const char *name;
     bool (*decode)(uint8_t *bits, uint32_t numbytes, uint32_t numbits, ProtoViewMsgInfo *info);
-    /* This method is used by the decoder to return the fields it needs
-     * in order to build a new message. This way the message builder view
-     * can ask the user to fill the right set of fields of the specified
-     * type. */
     void (*get_fields)(ProtoViewFieldSet *fields);
-    /* This method takes the fields supported by the decoder, and
-     * renders a message in 'samples'. */
     void (*build_message)(RawSamplesBuffer *samples, ProtoViewFieldSet *fields);
 } ProtoViewDecoder;
 
@@ -242,7 +204,6 @@ extern RawSamplesBuffer *RawSamples, *DetectedSamples;
 /* app_subghz.c */
 void radio_begin(ProtoViewApp* app);
 uint32_t radio_rx(ProtoViewApp* app);
-void radio_idle(ProtoViewApp* app);
 void radio_rx_end(ProtoViewApp* app);
 void radio_sleep(ProtoViewApp* app);
 void raw_sampling_worker_start(ProtoViewApp *app);
@@ -253,7 +214,7 @@ void protoview_rx_callback(bool level, uint32_t duration, void* context);
 /* signal.c */
 uint32_t duration_delta(uint32_t a, uint32_t b);
 void reset_current_signal(ProtoViewApp *app);
-void scan_for_signal(ProtoViewApp *app,RawSamplesBuffer *source,uint32_t min_duration);
+void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_duration);
 bool bitmap_get(uint8_t *b, uint32_t blen, uint32_t bitpos);
 void bitmap_set(uint8_t *b, uint32_t blen, uint32_t bitpos, bool val);
 void bitmap_copy(uint8_t *d, uint32_t dlen, uint32_t doff, uint8_t *s, uint32_t slen, uint32_t soff, uint32_t count);
@@ -271,35 +232,28 @@ uint32_t convert_from_diff_manchester(uint8_t *buf, uint64_t buflen, uint8_t *bi
 void init_msg_info(ProtoViewMsgInfo *i, ProtoViewApp *app);
 void free_msg_info(ProtoViewMsgInfo *i);
 
-/* signal_file.c */
-bool save_signal(ProtoViewApp *app, const char *filename);
+/* tpms_sensor.c */
+void tpms_sensor_list_init(TPMSSensorList *list);
+void tpms_sensor_list_clear(TPMSSensorList *list);
+bool tpms_extract_and_store(ProtoViewApp *app);
 
-/* view_*.c */
-void render_view_raw_pulses(Canvas *const canvas, ProtoViewApp *app);
-void process_input_raw_pulses(ProtoViewApp *app, InputEvent input);
+/* view_tpms_list.c */
+void render_view_tpms_list(Canvas *const canvas, ProtoViewApp *app);
+void process_input_tpms_list(ProtoViewApp *app, InputEvent input);
+
+/* view_tpms_detail.c */
+void render_view_tpms_detail(Canvas *const canvas, ProtoViewApp *app);
+void process_input_tpms_detail(ProtoViewApp *app, InputEvent input);
+
+/* view_settings.c */
 void render_view_settings(Canvas *const canvas, ProtoViewApp *app);
 void process_input_settings(ProtoViewApp *app, InputEvent input);
-void render_view_info(Canvas *const canvas, ProtoViewApp *app);
-void process_input_info(ProtoViewApp *app, InputEvent input);
-void render_view_direct_sampling(Canvas *const canvas, ProtoViewApp *app);
-void process_input_direct_sampling(ProtoViewApp *app, InputEvent input);
-void render_view_build_message(Canvas *const canvas, ProtoViewApp *app);
-void process_input_build_message(ProtoViewApp *app, InputEvent input);
-void view_enter_build_message(ProtoViewApp *app);
-void view_exit_build_message(ProtoViewApp *app);
-void view_enter_direct_sampling(ProtoViewApp *app);
-void view_exit_direct_sampling(ProtoViewApp *app);
 void view_exit_settings(ProtoViewApp *app);
-void view_exit_info(ProtoViewApp *app);
-void adjust_raw_view_scale(ProtoViewApp *app, uint32_t short_pulse_dur);
 
 /* ui.c */
 int ui_get_current_subview(ProtoViewApp *app);
 void ui_show_available_subviews(Canvas *canvas, ProtoViewApp *app, int last_subview);
 bool ui_process_subview_updown(ProtoViewApp *app, InputEvent input, int last_subview);
-void ui_show_keyboard(ProtoViewApp *app, char *buffer, uint32_t buflen,
-                   void (*done_callback)(void*));
-void ui_dismiss_keyboard(ProtoViewApp *app);
 void ui_show_alert(ProtoViewApp *app, const char *text, uint32_t ttl);
 void ui_dismiss_alert(ProtoViewApp *app);
 void ui_draw_alert_if_needed(Canvas *canvas, ProtoViewApp *app);
