@@ -23,6 +23,7 @@
 #include "raw_samples.h"
 
 #define TAG "TPMSReader"
+#define TPMS_READER_VERSION "1.4.3"
 #define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100
 #define BITMAP_SEEK_NOT_FOUND UINT32_MAX
 #define PROTOVIEW_VIEW_PRIVDATA_LEN 64

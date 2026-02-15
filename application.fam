@@ -1,6 +1,7 @@
 App(
     appid="tpms_reader",
     name="TPMS Reader",
+    fap_version=(1, 4),
     apptype=FlipperAppType.EXTERNAL,
     entry_point="protoview_app_entry",
     cdefines=["APP_TPMS_READER"],
