@@ -1,0 +1,42 @@
+TPMS Reader - Credits and Third-Party Notices
+==============================================
+
+ProtoView (base application)
+-----------------------------
+Copyright (c) 2022-2023 Salvatore Sanfilippo <antirez at gmail dot com>
+License: BSD-2-Clause (see LICENSE)
+https://github.com/antirez/protoview
+
+This application is a modified fork of ProtoView, focused on TPMS
+(Tire Pressure Monitoring System) signal reception on 315 MHz (US).
+
+rtl_433 project (protocol documentation reference)
+----------------------------------------------------
+Copyright (C) 2012-2024 Benjamin Larsson and contributors
+License: GPL-2.0
+https://github.com/merbanan/rtl_433
+
+The following TPMS protocol decoders were written as independent
+implementations for the Flipper Zero platform. Protocol specifications
+(preamble patterns, field layouts, CRC parameters, encoding schemes,
+and physical-layer parameters) were derived from documentation and
+source code in the rtl_433 project. No rtl_433 source code was copied.
+
+  protocols/tpms/pmv107j.c      - Toyota PMV-107J (US market)
+  protocols/tpms/elantra2012.c   - Hyundai Elantra 2012 / Honda Civic
+  protocols/tpms/bmw.c           - BMW Gen4/5 and Audi
+  protocols/tpms/bmw_g3.c        - BMW Gen2/Gen3
+  protocols/tpms/porsche.c       - Porsche Boxster/Cayman (Typ 987)
+  protocols/tpms/schrader_smd3ma4.c - Schrader SMD3MA4 (Subaru, Nissan)
+
+The original ProtoView TPMS decoders (below) were part of the upstream
+ProtoView project and follow its BSD-2-Clause license:
+
+  protocols/tpms/toyota.c        - Toyota (EU 433 MHz variant)
+  protocols/tpms/citroen.c       - Citroen
+  protocols/tpms/ford.c          - Ford
+  protocols/tpms/hyundai_kia.c   - Hyundai/Kia
+  protocols/tpms/renault.c       - Renault
+  protocols/tpms/schrader.c      - Schrader GEN1
+  protocols/tpms/schrader_eg53ma4.c - Schrader EG53MA4
+  protocols/tpms/gm.c            - General Motors

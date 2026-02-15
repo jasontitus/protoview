@@ -20,6 +20,7 @@
 #include <notification/notification_messages.h>
 #include <lib/subghz/subghz_setting.h>
 #include <lib/subghz/registry.h>
+#include <storage/storage.h>
 #include "raw_samples.h"
 
 #define TAG "TPMSReader"
@@ -124,6 +125,7 @@ struct ProtoViewApp {
     /* Radio related. */
     ProtoViewTxRx *txrx;
     SubGhzSetting *setting;
+    Storage *storage;
 
     /* Generic app state. */
     int running;
@@ -229,6 +231,7 @@ void bitmap_to_string(char *dst, uint8_t *b, uint32_t blen,
                       uint32_t off, uint32_t len);
 uint32_t convert_from_line_code(uint8_t *buf, uint64_t buflen, uint8_t *bits, uint32_t len, uint32_t offset, const char *zero_pattern, const char *one_pattern);
 uint32_t convert_from_diff_manchester(uint8_t *buf, uint64_t buflen, uint8_t *bits, uint32_t len, uint32_t off, bool previous);
+uint32_t diff_manchester_decode(uint8_t *buf, uint32_t buflen, uint8_t *bits, uint32_t numbytes, uint32_t off, uint32_t max_bits);
 void init_msg_info(ProtoViewMsgInfo *i, ProtoViewApp *app);
 void free_msg_info(ProtoViewMsgInfo *i);
 
@@ -236,6 +239,7 @@ void free_msg_info(ProtoViewMsgInfo *i);
 void tpms_sensor_list_init(TPMSSensorList *list);
 void tpms_sensor_list_clear(TPMSSensorList *list);
 bool tpms_extract_and_store(ProtoViewApp *app);
+void tpms_save_to_file(ProtoViewApp *app, TPMSSensor *sensor);
 
 /* view_tpms_list.c */
 void render_view_tpms_list(Canvas *const canvas, ProtoViewApp *app);
@@ -278,5 +282,6 @@ void field_set_from_field(ProtoViewField *dst, ProtoViewField *src);
 
 /* crc.c */
 uint8_t crc8(const uint8_t *data, size_t len, uint8_t init, uint8_t poly);
+uint16_t crc16(const uint8_t *data, size_t len, uint16_t init, uint16_t poly);
 uint8_t sum_bytes(const uint8_t *data, size_t len, uint8_t init);
 uint8_t xor_bytes(const uint8_t *data, size_t len, uint8_t init);

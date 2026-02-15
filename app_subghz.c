@@ -22,6 +22,8 @@ ProtoViewModulation ProtoViewModulations[] = {
                     FuriHalSubGhzPreset2FSKDev238Async, NULL, 30},
     {"2FSK 47.6Khz", "FuriHalSubGhzPreset2FSKDev476Async",
                     FuriHalSubGhzPreset2FSKDev476Async, NULL, 30},
+    {"TPMS Toyota", NULL,
+                    0, (uint8_t*)protoview_subghz_tpms_toyota_fsk_async_regs, 30},
     {"TPMS 1 (FSK)", NULL,
                     0, (uint8_t*)protoview_subghz_tpms1_fsk_async_regs, 30},
     {"TPMS 2 (OOK)", NULL,
@@ -41,10 +43,6 @@ void radio_begin(ProtoViewApp* app) {
     furi_assert(app);
     furi_hal_subghz_reset();
     furi_hal_subghz_idle();
-
-    /* Power circuits are noisy. Suppressing the charge while we use
-     * ProtoView will improve the RF performances. */
-    furi_hal_power_suppress_charge_enter();
 
     /* Load the CC1101 register preset for the selected modulation.
      * Custom presets are defined in custom_presets.h; built-in ones

@@ -22,6 +22,24 @@ uint8_t crc8(const uint8_t *data, size_t len, uint8_t init, uint8_t poly)
     return crc;
 }
 
+/* CRC16 with the specified initialization value 'init' and
+ * polynomial 'poly'. */
+uint16_t crc16(const uint8_t *data, size_t len, uint16_t init, uint16_t poly)
+{
+    uint16_t crc = init;
+    size_t i, j;
+    for (i = 0; i < len; i++) {
+        crc ^= (uint16_t)data[i] << 8;
+        for (j = 0; j < 8; j++) {
+            if ((crc & 0x8000) != 0)
+                crc = (uint16_t)((crc << 1) ^ poly);
+            else
+                crc <<= 1;
+        }
+    }
+    return crc;
+}
+
 /* Sum all the specified bytes modulo 256.
  * Initialize the sum with 'init' (usually 0). */
 uint8_t sum_bytes(const uint8_t *data, size_t len, uint8_t init) {

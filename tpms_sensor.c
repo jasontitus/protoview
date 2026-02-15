@@ -5,6 +5,8 @@
 #include "app.h"
 #include <string.h>
 
+#define TPMS_LOG_PATH APP_DATA_PATH("tpms_log.csv")
+
 /* Initialize the sensor list. */
 void tpms_sensor_list_init(TPMSSensorList *list) {
     memset(list, 0, sizeof(TPMSSensorList));
@@ -35,6 +37,62 @@ static int sensor_list_find(TPMSSensorList *list, uint8_t *id, uint8_t id_len) {
         }
     }
     return -1;
+}
+
+/* Append a sensor reading to the log file on the SD card.
+ * Format: ID_hex,protocol,pressure_psi,temperature_f,rx_count */
+void tpms_save_to_file(ProtoViewApp *app, TPMSSensor *sensor) {
+    if (!app->storage) return;
+
+    File *file = storage_file_alloc(app->storage);
+    if (!file) return;
+
+    /* Ensure the app data directory exists. */
+    FuriString *dir_path = furi_string_alloc_set(APP_DATA_PATH(""));
+    storage_common_resolve_path_and_ensure_app_directory(app->storage, dir_path);
+    furi_string_free(dir_path);
+
+    /* Write CSV header if file is new. */
+    bool is_new = !storage_file_exists(app->storage, TPMS_LOG_PATH);
+
+    if (storage_file_open(file, TPMS_LOG_PATH, FSAM_WRITE, FSOM_OPEN_APPEND)) {
+        if (is_new) {
+            const char *header = "id,protocol,pressure_psi,temperature_f,rx_count\n";
+            storage_file_write(file, header, strlen(header));
+        }
+
+        /* Format ID as hex string. */
+        char id_hex[TPMS_ID_MAX_BYTES * 2 + 1];
+        for (uint8_t i = 0; i < sensor->id_len; i++) {
+            snprintf(id_hex + i * 2, 3, "%02X", sensor->id[i]);
+        }
+        id_hex[sensor->id_len * 2] = '\0';
+
+        /* Format the CSV line. */
+        char line[128];
+        int len = snprintf(line, sizeof(line), "%s,%s,",
+                           id_hex, sensor->protocol);
+
+        if (sensor->has_pressure)
+            len += snprintf(line + len, sizeof(line) - len, "%.1f,",
+                            (double)sensor->pressure_psi);
+        else
+            len += snprintf(line + len, sizeof(line) - len, ",");
+
+        if (sensor->has_temperature)
+            len += snprintf(line + len, sizeof(line) - len, "%d,",
+                            sensor->temperature_f);
+        else
+            len += snprintf(line + len, sizeof(line) - len, ",");
+
+        len += snprintf(line + len, sizeof(line) - len, "%lu\n",
+                        (unsigned long)sensor->rx_count);
+
+        storage_file_write(file, line, len);
+    }
+
+    storage_file_close(file);
+    storage_file_free(file);
 }
 
 /* Extract TPMS sensor data from the currently decoded message and
@@ -87,27 +145,34 @@ bool tpms_extract_and_store(ProtoViewApp *app) {
     sensor.rx_count = 1;
 
     /* Find existing sensor or add new one. */
+    TPMSSensor *saved = NULL;
     int idx = sensor_list_find(&app->sensor_list, sensor.id, sensor.id_len);
     if (idx >= 0) {
         /* Update existing sensor. */
-        TPMSSensor *existing = &app->sensor_list.sensors[idx];
+        saved = &app->sensor_list.sensors[idx];
         if (sensor.has_pressure) {
-            existing->pressure_psi = sensor.pressure_psi;
-            existing->has_pressure = true;
+            saved->pressure_psi = sensor.pressure_psi;
+            saved->has_pressure = true;
         }
         if (sensor.has_temperature) {
-            existing->temperature_f = sensor.temperature_f;
-            existing->has_temperature = true;
+            saved->temperature_f = sensor.temperature_f;
+            saved->has_temperature = true;
         }
-        existing->last_seen = sensor.last_seen;
-        existing->rx_count++;
+        saved->last_seen = sensor.last_seen;
+        saved->rx_count++;
         /* Update protocol name in case a more specific decoder matched. */
-        snprintf(existing->protocol, sizeof(existing->protocol), "%s",
+        snprintf(saved->protocol, sizeof(saved->protocol), "%s",
                  sensor.protocol);
     } else if (app->sensor_list.count < TPMS_MAX_SENSORS) {
         /* Add new sensor. */
         app->sensor_list.sensors[app->sensor_list.count] = sensor;
+        saved = &app->sensor_list.sensors[app->sensor_list.count];
         app->sensor_list.count++;
+    }
+
+    /* Persist to SD card so data survives crashes. */
+    if (saved) {
+        tpms_save_to_file(app, saved);
     }
 
     /* Notify the user: vibrate + green LED for new TPMS data. */

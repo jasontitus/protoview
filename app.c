@@ -95,6 +95,9 @@ ProtoViewApp* protoview_app_alloc() {
     app->setting = subghz_setting_alloc();
     subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
 
+    /* Storage for persisting TPMS data. */
+    app->storage = furi_record_open(RECORD_STORAGE);
+
     /* GUI setup. */
     app->gui = furi_record_open(RECORD_GUI);
     app->notification = furi_record_open(RECORD_NOTIFICATION);
@@ -155,6 +158,7 @@ void protoview_app_free(ProtoViewApp *app) {
     view_port_free(app->view_port);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
+    furi_record_close(RECORD_STORAGE);
     furi_message_queue_free(app->event_queue);
     furi_mutex_free(app->view_updating_mutex);
     app->gui = NULL;

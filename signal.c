@@ -20,8 +20,20 @@ extern ProtoViewDecoder CitroenTPMSDecoder;
 extern ProtoViewDecoder FordTPMSDecoder;
 extern ProtoViewDecoder HyundaiKiaTPMSDecoder;
 extern ProtoViewDecoder GMTPMSDecoder;
+extern ProtoViewDecoder PMV107JTPMSDecoder;
+extern ProtoViewDecoder Elantra2012TPMSDecoder;
+extern ProtoViewDecoder BMWTPMSDecoder;
+extern ProtoViewDecoder BMWGen3TPMSDecoder;
+extern ProtoViewDecoder PorscheTPMSDecoder;
+extern ProtoViewDecoder SchraderSMD3MA4TPMSDecoder;
 
 ProtoViewDecoder *Decoders[] = {
+    &PMV107JTPMSDecoder,        /* Toyota Highlander, Camry, Lexus (US). */
+    &Elantra2012TPMSDecoder,    /* Hyundai Elantra 2012 / Honda Civic. */
+    &BMWTPMSDecoder,            /* BMW Gen4/5 and Audi. */
+    &BMWGen3TPMSDecoder,        /* BMW Gen2/Gen3. */
+    &PorscheTPMSDecoder,        /* Porsche Boxster/Cayman. */
+    &SchraderSMD3MA4TPMSDecoder,/* Schrader SMD3MA4 (Subaru, Nissan, etc). */
     &RenaultTPMSDecoder,
     &ToyotaTPMSDecoder,
     &SchraderTPMSDecoder,
@@ -324,6 +336,36 @@ uint32_t convert_from_diff_manchester(uint8_t *buf, uint64_t buflen, uint8_t *bi
         bitmap_set(buf, buflen, decoded++, b0 == b1);
         previous = b1;
         if (decoded / 8 == buflen) break;
+    }
+    return decoded;
+}
+
+/* Proper differential Manchester decoder using 3-sample sliding window.
+ * Convention: transition at start = 0, no transition at start = 1.
+ * Mid-bit transition is always required (breaks on error).
+ * Returns number of bits decoded into buf. */
+uint32_t diff_manchester_decode(
+    uint8_t *buf, uint32_t buflen,
+    uint8_t *bits, uint32_t numbytes, uint32_t off, uint32_t max_bits)
+{
+    uint32_t decoded = 0;
+    uint32_t limit = numbytes * 8;
+
+    if (off >= limit) return 0;
+    bool bit = bitmap_get(bits, numbytes, off++);
+
+    while (decoded < max_bits && off < limit) {
+        bool bit2 = bitmap_get(bits, numbytes, off++);
+        if (bit == bit2) break; /* No mid-bit transition: error. */
+
+        if (off >= limit) break;
+        bool bit3 = bitmap_get(bits, numbytes, off++);
+
+        if (bit2 == bit3)
+            bitmap_set(buf, buflen, decoded++, true);  /* No start transition → 1. */
+        else
+            bitmap_set(buf, buflen, decoded++, false); /* Start transition → 0. */
+        bit = bit3;
     }
     return decoded;
 }

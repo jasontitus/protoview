@@ -60,6 +60,52 @@
  * 0x47 ->  47.607422 kHz
  */
 
+/* 10 KBaud, 2FSK, 34.9 kHz deviation, 325 Khz bandwidth filter.
+ * Optimized for Toyota/Lexus PMV-107J sensors at 315 MHz. */
+static uint8_t protoview_subghz_tpms_toyota_fsk_async_regs[][2] = {
+    /* GPIO GD0 */
+    {CC1101_IOCFG0, 0x0D}, // GD0 as async serial data output/input
+
+    /* Frequency Synthesizer Control */
+    {CC1101_FSCTRL1, 0x06}, // IF = (26*10^6) / (2^10) * 0x06 = 152343.75Hz
+
+    /* Packet engine */
+    {CC1101_PKTCTRL0, 0x32}, // Async, continious, no whitening
+    {CC1101_PKTCTRL1, 0x04},
+
+    // // Modem Configuration
+    {CC1101_MDMCFG0, 0x00},
+    {CC1101_MDMCFG1, 0x02},
+    {CC1101_MDMCFG2, 0x04}, // Format 2-FSK/FM, No preamble/sync
+    {CC1101_MDMCFG3, 0x83}, // Data rate ~10kBaud
+    {CC1101_MDMCFG4, 0x58}, // Rx bandwidth filter is 325 kHz, data rate exp
+    {CC1101_DEVIATN, 0x43}, // Deviation 34.9 kHz (Toyota uses ~35 kHz)
+
+    /* Main Radio Control State Machine */
+    {CC1101_MCSM0, 0x18}, // Autocalibrate on idle-to-rx/tx
+
+    /* Frequency Offset Compensation Configuration */
+    {CC1101_FOCCFG, 0x16},
+
+    /* Automatic Gain Control */
+    {CC1101_AGCCTRL0, 0x91},
+    {CC1101_AGCCTRL1, 0x00},
+    {CC1101_AGCCTRL2, 0x07}, // 00 - DVGA all; 000 - MAX LNA+LNA2; 111 - MAIN_TARGET 42 dB
+
+    /* Wake on radio and timeouts control */
+    {CC1101_WORCTRL, 0xFB},
+
+    /* Frontend configuration */
+    {CC1101_FREND0, 0x10},
+    {CC1101_FREND1, 0x56},
+
+    /* End  */
+    {0, 0},
+
+    /* CC1101 2FSK PATABLE. */
+    {0xC0, 0}, {0,0}, {0,0}, {0,0}
+};
+
 /* 20 KBaud, 2FSK, 28.56 kHz deviation, 325 Khz bandwidth filter. */
 static uint8_t protoview_subghz_tpms1_fsk_async_regs[][2] = {
     /* GPIO GD0 */
