@@ -28,15 +28,15 @@ source code in the rtl_433 project. No rtl_433 source code was copied.
   protocols/tpms/bmw_g3.c        - BMW Gen2/Gen3
   protocols/tpms/porsche.c       - Porsche Boxster/Cayman (Typ 987)
   protocols/tpms/schrader_smd3ma4.c - Schrader SMD3MA4 (Subaru, Nissan)
+  protocols/tpms/gm.c              - GM Aftermarket (Chevy, GMC, Cadillac)
 
 The original ProtoView TPMS decoders (below) were part of the upstream
 ProtoView project and follow its BSD-2-Clause license:
 
   protocols/tpms/toyota.c        - Toyota (EU 433 MHz variant)
   protocols/tpms/citroen.c       - Citroen
-  protocols/tpms/ford.c          - Ford
+  protocols/tpms/ford.c          - Ford (also covers US 315 MHz)
   protocols/tpms/hyundai_kia.c   - Hyundai/Kia
   protocols/tpms/renault.c       - Renault
-  protocols/tpms/schrader.c      - Schrader GEN1
-  protocols/tpms/schrader_eg53ma4.c - Schrader EG53MA4
-  protocols/tpms/gm.c            - General Motors
+  protocols/tpms/schrader.c      - Schrader GEN1 (Chrysler/Stellantis)
+  protocols/tpms/schrader_eg53ma4.c - Schrader EG53MA4 (GM OEM / Chevy)
