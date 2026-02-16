@@ -129,6 +129,8 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
     RawSamplesBuffer *copy = raw_samples_alloc();
     raw_samples_copy(copy, source);
 
+    app->dbg_scan_count++;
+
     uint32_t minlen = 18;
     uint32_t i = 0;
 
@@ -136,13 +138,21 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
         uint32_t thislen = search_coherent_signal(copy, i, min_duration);
 
         if (thislen > minlen) {
+            app->dbg_coherent_count++;
+            app->dbg_last_signal_len = thislen;
+            app->dbg_last_signal_dur = copy->short_pulse_dur;
+
             ProtoViewMsgInfo *info = malloc(sizeof(ProtoViewMsgInfo));
             init_msg_info(info, app);
             info->short_pulse_dur = copy->short_pulse_dur;
 
             uint32_t saved_idx = copy->idx;
             raw_samples_center(copy, i);
+
+            app->dbg_decode_try_count++;
             bool decoded = decode_signal(copy, thislen, info);
+            if (decoded) app->dbg_decode_ok_count++;
+
             copy->idx = saved_idx;
 
             bool oldsignal_not_decoded = app->signal_decoded == false;

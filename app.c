@@ -142,6 +142,14 @@ ProtoViewApp* protoview_app_alloc() {
     app->mod_auto_cycle = true;
     app->mod_cycle_counter = 0;
 
+    /* Debug counters. */
+    app->dbg_scan_count = 0;
+    app->dbg_coherent_count = 0;
+    app->dbg_decode_try_count = 0;
+    app->dbg_decode_ok_count = 0;
+    app->dbg_last_signal_len = 0;
+    app->dbg_last_signal_dur = 0;
+
     furi_hal_power_suppress_charge_enter();
     app->running = 1;
 
