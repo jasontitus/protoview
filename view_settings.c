@@ -17,7 +17,10 @@ void render_view_settings(Canvas *const canvas, ProtoViewApp *app) {
     else
         canvas_draw_str(canvas, 70, 10, "Modulation");
 
+    /* Version label in top-right corner. */
     canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 126, 0, AlignRight, AlignTop,
+                            "v" TPMS_READER_VERSION);
 
     /* Auto-cycle status. */
     if (app->mod_auto_cycle)
