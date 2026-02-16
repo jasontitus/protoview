@@ -41,12 +41,14 @@ void render_view_tpms_list(Canvas *const canvas, ProtoViewApp *app) {
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
 
-    /* Show frequency and modulation in header. */
-    snprintf(buf, sizeof(buf), "TPMS Reader  %.1fMHz %s",
+    /* Show frequency and modulation in header, version right-aligned. */
+    snprintf(buf, sizeof(buf), "TPMS %.1fMHz %s",
              (double)app->frequency / 1000000,
              app->mod_auto_cycle ? "Auto" :
                 ProtoViewModulations[app->modulation].name);
     canvas_draw_str(canvas, 1, 9, buf);
+    canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom,
+                            "v" TPMS_READER_VERSION);
 
     canvas_set_color(canvas, ColorBlack);
 

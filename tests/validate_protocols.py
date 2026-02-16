@@ -609,12 +609,17 @@ def main():
         else:
             print(f"\n  {name} not found, skipping")
 
-    # 4. rtl_433 reference data
-    rtl_test_dir = script_dir / "rtl_433" / "tests"
+    # 4. rtl_433 reference data (sibling directory to avoid Flipper build issues)
+    rtl_test_dir = project_dir.parent / "rtl_433_tests" / "tests"
+    # Also check old location for backwards compat
+    rtl_test_dir_old = script_dir / "rtl_433" / "tests"
     if rtl_test_dir.exists():
         validate_rtl433_json_files(str(rtl_test_dir), result)
+    elif rtl_test_dir_old.exists():
+        validate_rtl433_json_files(str(rtl_test_dir_old), result)
     else:
-        print(f"\n  rtl_433 test data not found at {rtl_test_dir}")
+        print(f"\n  rtl_433 test data not found.")
+        print(f"  See tests/README.md for download instructions.")
 
     # Summary
     print(f"\n{'='*60}")

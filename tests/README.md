@@ -17,10 +17,11 @@ python3 tests/validate_protocols.py
 
 ### rtl_433 reference captures (optional, improves coverage)
 
-To download rtl_433 test captures:
+To download rtl_433 test captures (stored OUTSIDE the source tree
+to avoid interfering with the Flipper build system):
 
 ```bash
-cd tests/rtl_433
+mkdir -p ../rtl_433_tests && cd ../rtl_433_tests
 git clone --depth 1 --filter=blob:none --sparse \
     https://github.com/merbanan/rtl_433_tests.git .
 git sparse-checkout set \
