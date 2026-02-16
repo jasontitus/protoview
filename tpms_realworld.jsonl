@@ -1,0 +1,22 @@
+{"time" : "@0.214176s", "model" : "Toyota", "type" : "TPMS", "id" : "fb0a43e7", "status" : 128, "pressure_PSI" : 36.750, "temperature_C" : 29.000, "mic" : "CRC"}
+{"time" : "@0.214168s", "model" : "Toyota", "type" : "TPMS", "id" : "f0b9f6d5", "status" : 176, "pressure_PSI" : 0.250, "temperature_C" : 17.000, "mic" : "CRC"}
+{"time" : "@0.206472s", "model" : "PMV-107J", "type" : "TPMS", "id" : "079e15a0", "status" : 24, "battery_ok" : 1, "counter" : 3, "failed" : "OK", "pressure_kPa" : 223.200, "temperature_C" : 24.000, "mic" : "CRC"}
+{"time" : "@0.184300s", "model" : "Ford", "type" : "TPMS", "id" : "45bb320f", "pressure_PSI" : 26.500, "moving" : 1, "learn" : 0, "code" : "6ad446", "unknown" : "00", "unknown_3" : "2", "mic" : "CHECKSUM"}
+{"time" : "@0.524288s", "model" : "Ford", "type" : "TPMS", "id" : "452f111f", "code" : "8d4c05", "mic" : "CHECKSUM"}
+{"time" : "@0.198304s", "model" : "Citroen", "type" : "TPMS", "state" : "d2", "id" : "8add48d4", "flags" : 0, "repeat" : 1, "pressure_kPa" : 289.168, "temperature_C" : 23.000, "maybe_battery" : 14, "mic" : "CHECKSUM"}
+{"time" : "@0.214588s", "model" : "Renault", "type" : "TPMS", "id" : "87f293", "flags" : "34", "pressure_kPa" : 202.500, "temperature_C" : 25.000, "mic" : "CRC"}
+{"time" : "@0.127336s", "model" : "Elantra2012", "type" : "TPMS", "id" : "801a2a5f", "pressure_kPa" : 62.000, "temperature_C" : 26.000, "battery_ok" : 1, "triggered" : 0, "storage" : 0, "flags" : "c0", "mic" : "CRC"}
+{"time" : "@0.044629s", "model" : "Schrader-EG53MA4", "type" : "TPMS", "flags" : "4d030033", "id" : "A2CA2A", "pressure_kPa" : 0.000, "temperature_F" : 86.000, "mic" : "CHECKSUM"}
+{"time" : "@0.290000s", "model" : "Schrader-SMD3MA4", "type" : "TPMS", "flags" : 7, "id" : "3F0650", "pressure_PSI" : 32.800, "mic" : "CHECKSUM"}
+{"time" : "@0.198592s", "type" : "TPMS", "model" : "Steelmate", "id" : "0x1a4e", "pressure_kPa" : 259.375, "temperature_C" : 25, "battery_mV" : 2570, "mic" : "CHECKSUM"}
+{"time" : "@0.152388s", "model" : "Truck", "type" : "TPMS", "id" : "0581b281", "wheel" : 2, "pressure_kPa" : 0.000, "temperature_C" : 30.000, "battery_ok" : 1, "flags" : 3, "mic" : "CHECKSUM"}
+{"time" : "2022-02-13 12:57:50", "model" : "PMV-107J", "type" : "TPMS", "id" : "04d3c7d2", "status" : 40, "battery_ok" : 0, "counter" : 1, "failed" : "OK", "pressure_kPa" : 205.840, "temperature_C" : 24.000, "Integrity" : "CRC", "Modulation" : "FSK", "Freq1" : "315.0 MHz", "Freq2" : "314.9 MHz", "RSSI" : "-1.0 dB", "SNR" : "32.2 dB", "Noise" : "-33.1 dB"}
+{"time" : "2022-04-03 09:56:01", "model" : "Toyota", "type" : "TPMS", "id" : "f211a9d6", "status" : 128, "pressure_kPa" : 193.053, "temperature_C" : 1.000, "mic" : "CRC", "mod" : "FSK", "freq1" : 433.927, "freq2" : 433.876, "rssi" : -7.682, "snr" : 15.067, "noise" : -22.749}
+{"time" : "@0.300000s", "model" : "Renault", "type" : "TPMS", "id" : "a1b2c3", "flags" : "30", "pressure_kPa" : 195.000, "temperature_C" : -12.000, "mic" : "CRC"}
+{"time" : "@0.310000s", "model" : "Toyota", "type" : "TPMS", "id" : "f0abcdef", "status" : 128, "pressure_PSI" : 38.500, "temperature_C" : -40.000, "mic" : "CRC"}
+{"time" : "@0.340000s", "model" : "Truck", "type" : "TPMS", "id" : "1234abcd", "wheel" : 5, "pressure_kPa" : 827.000, "temperature_C" : 55.000, "battery_ok" : 1, "flags" : 0, "mic" : "CHECKSUM"}
+{"time" : "@0.350000s", "model" : "Schrader", "type" : "TPMS", "flags" : 7, "id" : 31295, "pressure_kPa" : 245.000, "temperature_C" : 20.000, "mic" : "CRC"}
+{"time" : "@0.230000s", "type" : "TPMS", "model" : "Steelmate", "id" : "0x2b5f", "pressure_kPa" : 180.000, "temperature_C" : 35, "alarm" : "fast leak", "mic" : "CHECKSUM"}
+{"time" : "@0.240000s", "type" : "TPMS", "model" : "Steelmate", "id" : "0x2b5f", "pressure_kPa" : 195.000, "temperature_C" : 35, "battery_mV" : 1800, "mic" : "CHECKSUM"}
+{"time" : "2024-01-15T08:30:22", "model" : "Toyota", "type" : "TPMS", "id" : "f0abcdef", "status" : 128, "pressure_PSI" : 34.000, "temperature_C" : 5.000, "mic" : "CRC"}
+{"time" : "2024-01-15 10:00:00", "model" : "Acurite-5n1", "type" : "weather", "id" : 1234, "temperature_C" : 22.500, "humidity" : 65}

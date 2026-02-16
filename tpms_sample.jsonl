@@ -1,0 +1,5 @@
+{"time" : 1700000000, "model" : "Schrader", "type" : "TPMS", "id" : "0x1A2B3C4D", "flags" : 0, "pressure_PSI" : 32.500, "temperature_F" : 72.000, "battery_ok" : 1, "mic" : "CHECKSUM", "rssi" : -45.2, "snr" : 15.3}
+{"time" : 1700000005, "model" : "Toyota-PMV-C010", "type" : "TPMS", "id" : "0xDEADBEEF", "status" : 128, "pressure_kPa" : 234.000, "temperature_C" : 22.000, "battery_ok" : 1, "mic" : "CRC", "rssi" : -62.1, "snr" : 8.7}
+{"time" : 1700000010, "model" : "Schrader", "type" : "TPMS", "id" : "0x5E6F7A8B", "flags" : 0, "pressure_PSI" : 28.750, "temperature_F" : 68.500, "battery_ok" : 0, "mic" : "CHECKSUM", "rssi" : -78.5, "snr" : 4.2}
+{"time" : 1700000015, "model" : "Citroen", "type" : "TPMS", "id" : "0xCAFEBABE", "flags" : 4, "pressure_kPa" : 220.000, "temperature_C" : 25.000, "battery_ok" : 1, "mic" : "CRC", "rssi" : -55.0, "snr" : 11.1}
+{"time" : 1700000020, "model" : "Ford", "type" : "TPMS", "id" : "0xF00DFACE", "flags" : 0, "pressure_PSI" : 35.250, "temperature_F" : 85.000, "battery_ok" : 1, "mic" : "CHECKSUM", "rssi" : -41.8, "snr" : 18.5}
