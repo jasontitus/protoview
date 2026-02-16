@@ -53,21 +53,41 @@ void render_view_tpms_list(Canvas *const canvas, ProtoViewApp *app) {
     canvas_set_color(canvas, ColorBlack);
 
     if (app->sensor_list.count == 0) {
-        /* No sensors found yet - show scanning message. */
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignCenter,
-                                "Scanning...");
+        /* No sensors found yet - show scanning message with debug stats. */
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter,
-                                "Waiting for TPMS signals");
 
-        /* Animated dots to show scanning is active. */
+        /* Line 1: Scanning status with animated dots. */
         uint32_t ticks = furi_get_tick();
         int dots = (ticks / 500) % 4;
-        char dot_str[5] = "    ";
-        for (int i = 0; i < dots; i++) dot_str[i] = '.';
-        dot_str[dots] = 0;
-        canvas_draw_str(canvas, 99, 44, dot_str);
+        char dot_buf[32];
+        snprintf(dot_buf, sizeof(dot_buf), "Scanning%.*s", dots, "...");
+        canvas_draw_str(canvas, 1, 22, dot_buf);
+
+        /* Line 2: Scans performed and current modulation. */
+        snprintf(buf, sizeof(buf), "Scans: %lu  Mod: %s",
+                 (unsigned long)app->dbg_scan_count,
+                 ProtoViewModulations[app->modulation].name);
+        canvas_draw_str(canvas, 1, 32, buf);
+
+        /* Line 3: Signals found and decode attempts. */
+        snprintf(buf, sizeof(buf), "Signals: %lu  Decoded: %lu/%lu",
+                 (unsigned long)app->dbg_coherent_count,
+                 (unsigned long)app->dbg_decode_ok_count,
+                 (unsigned long)app->dbg_decode_try_count);
+        canvas_draw_str(canvas, 1, 42, buf);
+
+        /* Line 4: Last signal info (if any signal was seen). */
+        if (app->dbg_coherent_count > 0) {
+            snprintf(buf, sizeof(buf), "Last: %lu samp, %lu us pulse",
+                     (unsigned long)app->dbg_last_signal_len,
+                     (unsigned long)app->dbg_last_signal_dur);
+        } else {
+            snprintf(buf, sizeof(buf), "No RF signals detected yet");
+        }
+        canvas_draw_str(canvas, 1, 52, buf);
+
+        /* Bottom hint. */
+        canvas_draw_str(canvas, 1, 63, "LEFT/RIGHT: settings");
     } else {
         /* Column headers. */
         canvas_set_font(canvas, FontSecondary);
@@ -149,10 +169,13 @@ void render_view_tpms_list(Canvas *const canvas, ProtoViewApp *app) {
                                  CanvasDirectionTopToBottom);
         }
 
-        /* Status bar. */
+        /* Status bar with debug stats. */
         canvas_set_font(canvas, FontSecondary);
-        snprintf(buf, sizeof(buf), "%lu sensors  OK:view  LongOK:clear",
-                 (unsigned long)app->sensor_list.count);
+        snprintf(buf, sizeof(buf), "%luS sig:%lu dec:%lu/%lu",
+                 (unsigned long)app->sensor_list.count,
+                 (unsigned long)app->dbg_coherent_count,
+                 (unsigned long)app->dbg_decode_ok_count,
+                 (unsigned long)app->dbg_decode_try_count);
         canvas_draw_str(canvas, 1, 63, buf);
     }
 }

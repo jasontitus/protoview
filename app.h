@@ -152,6 +152,14 @@ struct ProtoViewApp {
     /* Modulation auto-cycling. */
     bool mod_auto_cycle;        /* Auto-cycle through TPMS modulations. */
     uint32_t mod_cycle_counter; /* Timer ticks since last modulation change. */
+
+    /* Debug/diagnostic counters (visible on screen). */
+    uint32_t dbg_scan_count;        /* Times scan_for_signal() was called. */
+    uint32_t dbg_coherent_count;    /* Coherent signals found (>minlen). */
+    uint32_t dbg_decode_try_count;  /* Signals sent to decoders. */
+    uint32_t dbg_decode_ok_count;   /* Successful TPMS decodes. */
+    uint32_t dbg_last_signal_len;   /* Sample count of last coherent signal. */
+    uint32_t dbg_last_signal_dur;   /* Short pulse duration of last signal. */
 };
 
 /* =========================== Protocols decoders =========================== */
