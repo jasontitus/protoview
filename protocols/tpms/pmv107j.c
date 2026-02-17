@@ -36,7 +36,7 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits,
     uint32_t off = bitmap_seek_bits(bits, numbytes, 0, numbits, "111110");
     if (off == BITMAP_SEEK_NOT_FOUND) return false;
 
-    FURI_LOG_E(TAG, "PMV-107J preamble found at %lu", off);
+    FURI_LOG_D(TAG, "PMV-107J preamble found at %lu", off);
     info->start_off = off;
     off += 6; /* Skip preamble, start at second half of reference clock. */
 
@@ -46,7 +46,7 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits,
     uint32_t decoded = diff_manchester_decode(
         decoded_buf, sizeof(decoded_buf), bits, numbytes, off, 70);
 
-    FURI_LOG_E(TAG, "PMV-107J diff manchester decoded %lu bits", decoded);
+    FURI_LOG_D(TAG, "PMV-107J diff manchester decoded %lu bits", decoded);
     if (decoded < 66) return false;
 
     /* Realign: first 2 decoded bits go to b[0], next 64 bits to b[1..8].
@@ -60,13 +60,13 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits,
     /* CRC-8 check: poly 0x13, init 0x00 over bytes 0-7, must equal byte 8. */
     uint8_t crc = crc8(b, 8, 0x00, 0x13);
     if (crc != b[8]) {
-        FURI_LOG_E(TAG, "PMV-107J CRC mismatch: calc=%02X got=%02X", crc, b[8]);
+        FURI_LOG_D(TAG, "PMV-107J CRC mismatch: calc=%02X got=%02X", crc, b[8]);
         return false;
     }
 
     /* Pressure integrity: b[5] and b[6] XOR must be 0xFF. */
     if ((b[5] ^ b[6]) != 0xFF) {
-        FURI_LOG_E(TAG, "PMV-107J pressure check failed: %02X ^ %02X != FF",
+        FURI_LOG_D(TAG, "PMV-107J pressure check failed: %02X ^ %02X != FF",
                    b[5], b[6]);
         return false;
     }

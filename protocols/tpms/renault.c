@@ -37,7 +37,7 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits, ProtoView
     const char *sync_pattern = "01010101010101010110";
     uint64_t off = bitmap_seek_bits(bits,numbytes,0,numbits,sync_pattern);
     if (off == BITMAP_SEEK_NOT_FOUND) return false;
-    FURI_LOG_E(TAG, "Renault TPMS preamble+sync found");
+    FURI_LOG_D(TAG, "Renault TPMS preamble+sync found");
 
     info->start_off = off;
     off += 20; /* Skip preamble. */
@@ -46,7 +46,7 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits, ProtoView
     uint32_t decoded =
         convert_from_line_code(raw,sizeof(raw),bits,numbytes,off,
             "01","10"); /* Manchester. */
-    FURI_LOG_E(TAG, "Renault TPMS decoded bits: %lu", decoded);
+    FURI_LOG_D(TAG, "Renault TPMS decoded bits: %lu", decoded);
 
     if (decoded < 8*9) return false; /* Require the full 9 bytes. */
     if (crc8(raw,8,0,7) != raw[8]) return false; /* Require sane CRC. */

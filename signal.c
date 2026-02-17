@@ -133,6 +133,7 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
 
     uint32_t minlen = 18;
     uint32_t i = 0;
+    int decode_budget = 2; /* Max decode attempts per scan to avoid GUI lockup. */
 
     while (i < copy->total - 1) {
         uint32_t thislen = search_coherent_signal(copy, i, min_duration);
@@ -141,6 +142,12 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
             app->dbg_coherent_count++;
             app->dbg_last_signal_len = thislen;
             app->dbg_last_signal_dur = copy->short_pulse_dur;
+
+            if (decode_budget <= 0) {
+                /* Skip decoding to avoid starving the GUI. */
+                i += thislen ? thislen : 1;
+                continue;
+            }
 
             ProtoViewMsgInfo *info = malloc(sizeof(ProtoViewMsgInfo));
             init_msg_info(info, app);
@@ -152,6 +159,7 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
             app->dbg_decode_try_count++;
             bool decoded = decode_signal(copy, thislen, info);
             if (decoded) app->dbg_decode_ok_count++;
+            decode_budget--;
 
             copy->idx = saved_idx;
 
@@ -166,7 +174,7 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
                 app->signal_decoded = decoded;
                 raw_samples_copy(DetectedSamples, copy);
                 raw_samples_center(DetectedSamples, i);
-                FURI_LOG_E(TAG, "===> Signal updated (%d samples %lu us)",
+                FURI_LOG_D(TAG, "===> Signal updated (%d samples %lu us)",
                     (int)thislen, DetectedSamples->short_pulse_dur);
             } else {
                 free_msg_info(info);
@@ -420,11 +428,7 @@ bool decode_signal(RawSamplesBuffer *s, uint64_t len, ProtoViewMsgInfo *info) {
     int j = 0;
     bool decoded = false;
     while (Decoders[j]) {
-        uint32_t start_time = furi_get_tick();
         decoded = Decoders[j]->decode(bitmap, bitmap_size, bits, info);
-        uint32_t delta = furi_get_tick() - start_time;
-        FURI_LOG_E(TAG, "Decoder %s took %lu ms",
-            Decoders[j]->name, (unsigned long)delta);
         if (decoded) {
             info->decoder = Decoders[j];
             break;
@@ -432,9 +436,7 @@ bool decode_signal(RawSamplesBuffer *s, uint64_t len, ProtoViewMsgInfo *info) {
         j++;
     }
 
-    if (!decoded) {
-        FURI_LOG_E(TAG, "No decoding possible");
-    } else {
+    if (decoded) {
         FURI_LOG_E(TAG, "+++ Decoded %s", info->decoder->name);
         if (info->pulses_count) {
             info->bits_bytes = (info->pulses_count + 7) / 8;

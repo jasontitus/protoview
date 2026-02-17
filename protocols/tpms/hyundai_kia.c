@@ -28,7 +28,7 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits, ProtoView
 
     uint64_t off = bitmap_seek_bits(bits, numbytes, 0, numbits, sync_pattern);
     if (off == BITMAP_SEEK_NOT_FOUND) return false;
-    FURI_LOG_E(TAG, "Hyundai/Kia TPMS preamble+sync found");
+    FURI_LOG_D(TAG, "Hyundai/Kia TPMS preamble+sync found");
 
     info->start_off = off;
     off += sync_len;
@@ -37,14 +37,14 @@ static bool decode(uint8_t *bits, uint32_t numbytes, uint32_t numbits, ProtoView
     uint32_t decoded =
         convert_from_line_code(raw, sizeof(raw), bits, numbytes, off,
             "01", "10"); /* Manchester code. */
-    FURI_LOG_E(TAG, "Hyundai/Kia TPMS decoded bits: %lu", decoded);
+    FURI_LOG_D(TAG, "Hyundai/Kia TPMS decoded bits: %lu", decoded);
 
     if (decoded < 10 * 8) return false;
 
     /* CRC check: XOR of bytes 0 through 8 should equal byte 9. */
     uint8_t crc = xor_bytes(raw, 9, 0);
     if (crc != raw[9]) {
-        FURI_LOG_E(TAG, "Hyundai/Kia TPMS CRC mismatch");
+        FURI_LOG_D(TAG, "Hyundai/Kia TPMS CRC mismatch");
         return false;
     }
 
