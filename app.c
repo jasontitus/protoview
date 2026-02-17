@@ -312,13 +312,18 @@ int32_t protoview_app_entry(void* p) {
         view_port_update(app->view_port);
     }
 
+    /* Stop the timer before shutting down the radio so the timer
+     * callback cannot race with the cleanup (e.g. restarting async RX
+     * or double-stopping it). */
+    furi_timer_stop(timer);
+    furi_timer_free(timer);
+
     if (app->txrx->txrx_state == TxRxStateRx) {
         FURI_LOG_E(TAG, "Putting CC1101 to sleep before exiting.");
         radio_rx_end(app);
         radio_sleep(app);
     }
 
-    furi_timer_free(timer);
     protoview_app_free(app);
     return 0;
 }
