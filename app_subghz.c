@@ -126,9 +126,10 @@ void radio_rx_end(ProtoViewApp* app) {
     app->txrx->txrx_state = TxRxStateIDLE;
 }
 
-/* Put radio on sleep. */
+/* Put radio on sleep. Safe to call multiple times. */
 void radio_sleep(ProtoViewApp* app) {
     furi_assert(app);
+    if (app->txrx->txrx_state == TxRxStateSleep) return;
     if (app->txrx->txrx_state == TxRxStateRx) {
         /* Stop the asynchronous receiving system before putting the
          * chip into sleep. */
