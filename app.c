@@ -152,6 +152,9 @@ ProtoViewApp* protoview_app_alloc() {
     app->dbg_last_signal_len = 0;
     app->dbg_last_signal_dur = 0;
 
+    /* SD card debug logging (always on). */
+    app->debug_logging = true;
+
     furi_hal_power_suppress_charge_enter();
     app->running = 1;
 
@@ -210,14 +213,14 @@ static void timer_callback(void *ctx) {
     } else {
         delta = RawSamples->total - lastidx + RawSamples->idx;
     }
-    if (delta >= RawSamples->total/2) {
+    if (delta >= 256) {
         app->should_scan = true;
     }
 
-    /* Auto-cycle TPMS modulations every ~3 seconds (24 ticks at 8/sec). */
+    /* Auto-cycle TPMS modulations every ~5 seconds (40 ticks at 8/sec). */
     if (app->mod_auto_cycle) {
         app->mod_cycle_counter++;
-        if (app->mod_cycle_counter >= 24) {
+        if (app->mod_cycle_counter >= 40) {
             app->mod_cycle_counter = 0;
             app->should_cycle_mod = true;
         }
@@ -250,6 +253,12 @@ static void process_modulation_cycle(ProtoViewApp *app) {
         radio_rx_end(app);
         radio_begin(app);
         radio_rx(app);
+
+        /* Reset buffer so we don't scan stale data from previous modulation. */
+        raw_samples_reset(RawSamples);
+        app->signal_last_scan_idx = 0;
+
+        tpms_debug_log(app, "MOD_SWITCH", ProtoViewModulations[app->modulation].name);
     }
 }
 
@@ -264,6 +273,8 @@ int32_t protoview_app_entry(void* p) {
     /* Start listening immediately. */
     radio_begin(app);
     radio_rx(app);
+
+    tpms_debug_log(app, "START", TPMS_READER_VERSION);
 
     InputEvent input;
     while(app->running) {
@@ -334,6 +345,8 @@ int32_t protoview_app_entry(void* p) {
 
         view_port_update(app->view_port);
     }
+
+    tpms_debug_log(app, "STOP", "");
 
     /* Stop the timer before shutting down the radio so the timer
      * callback cannot race with the cleanup (e.g. restarting async RX

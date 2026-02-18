@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define TPMS_LOG_PATH APP_DATA_PATH("tpms_log.csv")
+#define TPMS_DEBUG_LOG_PATH APP_DATA_PATH("tpms_debug.csv")
 
 /* Initialize the sensor list. */
 void tpms_sensor_list_init(TPMSSensorList *list) {
@@ -87,6 +88,50 @@ void tpms_save_to_file(ProtoViewApp *app, TPMSSensor *sensor) {
 
         len += snprintf(line + len, sizeof(line) - len, "%lu\n",
                         (unsigned long)sensor->rx_count);
+
+        storage_file_write(file, line, len);
+    }
+
+    storage_file_close(file);
+    storage_file_free(file);
+}
+
+/* Write a debug event to the SD card log.
+ * Format: ts_ms,event,modulation,scans,coherent,tries,decoded,detail */
+void tpms_debug_log(ProtoViewApp *app, const char *event, const char *detail) {
+    if (!app->debug_logging || !app->storage) return;
+
+    File *file = storage_file_alloc(app->storage);
+    if (!file) return;
+
+    FuriString *dir_path = furi_string_alloc_set(APP_DATA_PATH(""));
+    storage_common_resolve_path_and_ensure_app_directory(app->storage, dir_path);
+    furi_string_free(dir_path);
+
+    bool is_new = !storage_file_exists(app->storage, TPMS_DEBUG_LOG_PATH);
+
+    if (storage_file_open(file, TPMS_DEBUG_LOG_PATH, FSAM_WRITE, FSOM_OPEN_APPEND)) {
+        if (is_new) {
+            const char *header =
+                "ts_ms,event,modulation,scans,coherent,tries,decoded,detail\n";
+            storage_file_write(file, header, strlen(header));
+        }
+
+        uint32_t ts = furi_get_tick();
+        const char *mod_name = ProtoViewModulations[app->modulation].name;
+
+        char line[192];
+        int len = snprintf(
+            line, sizeof(line),
+            "%lu,%s,%s,%lu,%lu,%lu,%lu,%s\n",
+            (unsigned long)ts,
+            event,
+            mod_name,
+            (unsigned long)app->dbg_scan_count,
+            (unsigned long)app->dbg_coherent_count,
+            (unsigned long)app->dbg_decode_try_count,
+            (unsigned long)app->dbg_decode_ok_count,
+            detail ? detail : "");
 
         storage_file_write(file, line, len);
     }

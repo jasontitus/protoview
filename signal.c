@@ -71,7 +71,7 @@ uint32_t search_coherent_signal(RawSamplesBuffer *s, uint32_t idx, uint32_t min_
     } classes[SEARCH_CLASSES];
 
     memset(classes, 0, sizeof(classes));
-    uint32_t max_duration = 4000;
+    uint32_t max_duration = 6000;
     uint32_t len = 0;
     s->short_pulse_dur = 0;
 
@@ -92,7 +92,7 @@ uint32_t search_coherent_signal(RawSamplesBuffer *s, uint32_t idx, uint32_t min_
                 uint32_t classavg = classes[k].dur[level];
                 uint32_t count = classes[k].count[level];
                 uint32_t delta = duration_delta(dur, classavg);
-                if (delta < classavg / 5) {
+                if (delta < classavg / 3) {
                     classavg = ((classavg * count) + dur) / (count + 1);
                     classes[k].dur[level] = classavg;
                     classes[k].count[level]++;
@@ -131,9 +131,9 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
 
     app->dbg_scan_count++;
 
-    uint32_t minlen = 18;
+    uint32_t minlen = 30; /* Lowered to catch shorter/noisier TPMS fragments. */
     uint32_t i = 0;
-    int decode_budget = 2; /* Max decode attempts per scan to avoid GUI lockup. */
+    uint32_t coherent_log_count = 0; /* Rate-limit COHERENT debug logs. */
 
     while (i < copy->total - 1) {
         uint32_t thislen = search_coherent_signal(copy, i, min_duration);
@@ -143,10 +143,14 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
             app->dbg_last_signal_len = thislen;
             app->dbg_last_signal_dur = copy->short_pulse_dur;
 
-            if (decode_budget <= 0) {
-                /* Skip decoding to avoid starving the GUI. */
-                i += thislen ? thislen : 1;
-                continue;
+            /* Log COHERENT event (rate-limited to 3 per scan call). */
+            if (coherent_log_count < 3) {
+                coherent_log_count++;
+                char detail[48];
+                snprintf(detail, sizeof(detail), "len=%lu dur=%lu",
+                         (unsigned long)thislen,
+                         (unsigned long)copy->short_pulse_dur);
+                tpms_debug_log(app, "COHERENT", detail);
             }
 
             ProtoViewMsgInfo *info = malloc(sizeof(ProtoViewMsgInfo));
@@ -158,8 +162,11 @@ void scan_for_signal(ProtoViewApp *app, RawSamplesBuffer *source, uint32_t min_d
 
             app->dbg_decode_try_count++;
             bool decoded = decode_signal(copy, thislen, info);
-            if (decoded) app->dbg_decode_ok_count++;
-            decode_budget--;
+            if (decoded) {
+                app->dbg_decode_ok_count++;
+                tpms_debug_log(app, "DECODE_OK",
+                               info->decoder ? info->decoder->name : "");
+            }
 
             copy->idx = saved_idx;
 

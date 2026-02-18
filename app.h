@@ -24,7 +24,7 @@
 #include "raw_samples.h"
 
 #define TAG "TPMSReader"
-#define TPMS_READER_VERSION "2.3"
+#define TPMS_READER_VERSION "2.4"
 #define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100
 #define BITMAP_SEEK_NOT_FOUND UINT32_MAX
 #define PROTOVIEW_VIEW_PRIVDATA_LEN 64
@@ -164,6 +164,8 @@ struct ProtoViewApp {
     uint32_t dbg_decode_ok_count;   /* Successful TPMS decodes. */
     uint32_t dbg_last_signal_len;   /* Sample count of last coherent signal. */
     uint32_t dbg_last_signal_dur;   /* Short pulse duration of last signal. */
+
+    bool debug_logging;             /* SD card debug log enabled. */
 };
 
 /* =========================== Protocols decoders =========================== */
@@ -253,6 +255,7 @@ void tpms_sensor_list_init(TPMSSensorList *list);
 void tpms_sensor_list_clear(TPMSSensorList *list);
 bool tpms_extract_and_store(ProtoViewApp *app);
 void tpms_save_to_file(ProtoViewApp *app, TPMSSensor *sensor);
+void tpms_debug_log(ProtoViewApp *app, const char *event, const char *detail);
 
 /* view_tpms_list.c */
 void render_view_tpms_list(Canvas *const canvas, ProtoViewApp *app);

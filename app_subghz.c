@@ -28,7 +28,7 @@ ProtoViewModulation ProtoViewModulations[] = {
                     0, (uint8_t*)protoview_subghz_tpms1_fsk_async_regs, 30},
     {"TPMS 2 (OOK)", NULL,
                     0, (uint8_t*)protoview_subghz_tpms2_ook_async_regs, 30},
-    {"TPMS 3 (GFSK)", NULL,
+    {"GFSK 20kBaud", NULL,
                     0, (uint8_t*)protoview_subghz_tpms3_gfsk_async_regs, 30},
     {"OOK 40kBaud", NULL,
                     0, (uint8_t*)protoview_subghz_40k_ook_async_regs, 15},
