@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.3 (2026-02-17)
+
+- **Architectural refactor**: Move signal scanning and radio cycling out of
+  the FuriOS timer callback into the main event loop. The timer now only
+  sets lightweight flags; heavy work (scan_for_signal, tpms_extract_and_store,
+  radio reconfiguration) runs in the main thread. This prevents the
+  "ViewPort lockup" crash that occurred when 14 decoders blocked the GUI.
+
 ## v2.2 (2026-02-16)
 
 - Move version display to main TPMS list header bar (was hidden behind

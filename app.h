@@ -24,7 +24,7 @@
 #include "raw_samples.h"
 
 #define TAG "TPMSReader"
-#define TPMS_READER_VERSION "2.2"
+#define TPMS_READER_VERSION "2.3"
 #define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100
 #define BITMAP_SEEK_NOT_FOUND UINT32_MAX
 #define PROTOVIEW_VIEW_PRIVDATA_LEN 64
@@ -152,6 +152,10 @@ struct ProtoViewApp {
     /* Modulation auto-cycling. */
     bool mod_auto_cycle;        /* Auto-cycle through TPMS modulations. */
     uint32_t mod_cycle_counter; /* Timer ticks since last modulation change. */
+
+    /* Flags set by the lightweight timer, processed in the main loop. */
+    volatile bool should_scan;          /* New data ready for scanning. */
+    volatile bool should_cycle_mod;     /* Time to switch TPMS modulation. */
 
     /* Debug/diagnostic counters (visible on screen). */
     uint32_t dbg_scan_count;        /* Times scan_for_signal() was called. */

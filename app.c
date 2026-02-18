@@ -141,6 +141,8 @@ ProtoViewApp* protoview_app_alloc() {
     /* Modulation auto-cycling. */
     app->mod_auto_cycle = true;
     app->mod_cycle_counter = 0;
+    app->should_scan = false;
+    app->should_cycle_mod = false;
 
     /* Debug counters. */
     app->dbg_scan_count = 0;
@@ -196,34 +198,20 @@ static uint8_t next_tpms_modulation(uint8_t current) {
     return current; /* No other TPMS modulation found. */
 }
 
-/* Called periodically for signal processing. After detecting a TPMS signal,
- * extract the sensor data and reset for the next detection. */
+/* Lightweight timer callback — runs in ISR context at 8 Hz.
+ * Only checks conditions and sets flags; heavy work happens in main loop. */
 static void timer_callback(void *ctx) {
     ProtoViewApp *app = ctx;
     uint32_t delta, lastidx = app->signal_last_scan_idx;
 
-    /* Only scan when the buffer has filled 50% more since last scan. */
+    /* Check if the buffer has enough new data to warrant a scan. */
     if (lastidx < RawSamples->idx) {
         delta = RawSamples->idx - lastidx;
     } else {
         delta = RawSamples->total - lastidx + RawSamples->idx;
     }
-    if (delta < RawSamples->total/2) return;
-    app->signal_last_scan_idx = RawSamples->idx;
-
-    scan_for_signal(app, RawSamples,
-                    ProtoViewModulations[app->modulation].duration_filter);
-
-    /* If a signal was decoded, try to extract TPMS data and add to the
-     * sensor list, then reset detection for the next signal. */
-    if (app->signal_decoded && app->msg_info) {
-        tpms_extract_and_store(app);
-        /* Reset detection state (but not the raw buffer). */
-        app->signal_bestlen = 0;
-        app->signal_decoded = false;
-        raw_samples_reset(DetectedSamples);
-        free_msg_info(app->msg_info);
-        app->msg_info = NULL;
+    if (delta >= RawSamples->total/2) {
+        app->should_scan = true;
     }
 
     /* Auto-cycle TPMS modulations every ~3 seconds (24 ticks at 8/sec). */
@@ -231,14 +219,37 @@ static void timer_callback(void *ctx) {
         app->mod_cycle_counter++;
         if (app->mod_cycle_counter >= 24) {
             app->mod_cycle_counter = 0;
-            uint8_t next = next_tpms_modulation(app->modulation);
-            if (next != app->modulation) {
-                app->modulation = next;
-                radio_rx_end(app);
-                radio_begin(app);
-                radio_rx(app);
-            }
+            app->should_cycle_mod = true;
         }
+    }
+}
+
+/* Process pending scan work — called from the main loop. */
+static void process_signal_scan(ProtoViewApp *app) {
+    app->signal_last_scan_idx = RawSamples->idx;
+
+    scan_for_signal(app, RawSamples,
+                    ProtoViewModulations[app->modulation].duration_filter);
+
+    /* If a signal was decoded, extract TPMS data and reset for the next. */
+    if (app->signal_decoded && app->msg_info) {
+        tpms_extract_and_store(app);
+        app->signal_bestlen = 0;
+        app->signal_decoded = false;
+        raw_samples_reset(DetectedSamples);
+        free_msg_info(app->msg_info);
+        app->msg_info = NULL;
+    }
+}
+
+/* Cycle to the next TPMS modulation preset — called from the main loop. */
+static void process_modulation_cycle(ProtoViewApp *app) {
+    uint8_t next = next_tpms_modulation(app->modulation);
+    if (next != app->modulation) {
+        app->modulation = next;
+        radio_rx_end(app);
+        radio_begin(app);
+        radio_rx(app);
     }
 }
 
@@ -309,6 +320,18 @@ int32_t protoview_app_entry(void* p) {
                 if (!(c % 20)) FURI_LOG_E(TAG, "Loop timeout");
             }
         }
+
+        /* Process flags set by the lightweight timer callback.
+         * This runs in the main thread so it won't block the GUI. */
+        if (app->should_scan) {
+            app->should_scan = false;
+            process_signal_scan(app);
+        }
+        if (app->should_cycle_mod) {
+            app->should_cycle_mod = false;
+            process_modulation_cycle(app);
+        }
+
         view_port_update(app->view_port);
     }
 
