@@ -24,7 +24,7 @@ ProtoViewModulation ProtoViewModulations[] = {
                     FuriHalSubGhzPreset2FSKDev476Async, NULL, 30},
     {"TPMS US (FSK)", NULL,
                     0, (uint8_t*)protoview_subghz_tpms_us_fsk_async_regs, 30},
-    {"OOK 650kHz", NULL,
+    {"TPMS OOK", NULL,
                     0, (uint8_t*)protoview_subghz_tpms2_ook_async_regs, 30},
     {"GFSK 20kBaud", NULL,
                     0, (uint8_t*)protoview_subghz_tpms3_gfsk_async_regs, 30},

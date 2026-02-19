@@ -217,10 +217,12 @@ static void timer_callback(void *ctx) {
         app->should_scan = true;
     }
 
-    /* Auto-cycle TPMS modulations every ~5 seconds (40 ticks at 8/sec). */
+    /* Auto-cycle TPMS modulations every ~3 seconds (24 ticks at 8/sec).
+     * With only FSK + OOK presets, shorter dwell gives more chances
+     * to catch both sensor types while passing vehicles. */
     if (app->mod_auto_cycle) {
         app->mod_cycle_counter++;
-        if (app->mod_cycle_counter >= 40) {
+        if (app->mod_cycle_counter >= 24) {
             app->mod_cycle_counter = 0;
             app->should_cycle_mod = true;
         }
